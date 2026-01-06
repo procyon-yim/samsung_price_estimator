@@ -10,12 +10,11 @@ from keras import layers
 from datetime import datetime
 
 
-def predict_price(ticker='005930', user_defined_features=['Open', 'High', 'Close', 'Volume', 'Change', '3MA', '5MA'], window_size=15, training_dates=('2020-01-01', datetime.now().strftime('%Y-%m-%d'))):
-    """
-    user_defined_features: list of features to use for training (must include 'Close')
-    window_size: number of days to use for training
-    training_dates: tuple of start and end dates for training
-    """
+def predict_price(ticker, 
+user_defined_features=['Open', 'High', 'Close', 'Volume', 'Change', '3MA', '5MA'], 
+window_size=15 
+#,training_dates=('2020-01-01', datetime.now().strftime('%Y-%m-%d'))
+):
     
     np.set_printoptions(precision=4, linewidth=200)
 
@@ -26,7 +25,7 @@ def predict_price(ticker='005930', user_defined_features=['Open', 'High', 'Close
     keras.utils.set_random_seed(SEED)
 
 
-    df = fdr.DataReader(ticker, training_dates[0], training_dates[1])
+    df = fdr.DataReader(ticker)
     df['3MA'] = np.around(df['Close'].rolling(window=3).mean(), 0)
     df['5MA'] = np.around(df['Close'].rolling(window=5).mean(), 0)
 
@@ -68,9 +67,7 @@ def predict_price(ticker='005930', user_defined_features=['Open', 'High', 'Close
     model = keras.Sequential([
         keras.Input(shape=(WINDOW_SIZE, len(user_defined_features))),
         layers.LSTM(units=64, activation='relu'),
-        layers.Dropout(0.2),
         layers.Dense(32, activation='relu'),
-        layers.Dropout(0.2),
         layers.Dense(1, activation=None)
     ])
     model.compile(
@@ -93,41 +90,12 @@ def predict_price(ticker='005930', user_defined_features=['Open', 'High', 'Close
     input_data = xs.transform(input_data)
     input_data = input_data.reshape(1, WINDOW_SIZE, input_data.shape[1])
 
-    
-    # MC Dropout for Confidence Estimation
-    n_iterations = 30
-    predictions = []
-    
-    # We need to replicate input_data for batch prediction or loop
-    # Looping is safer for memory if n is large, but for 30 it's fine.
-    # Actually, we can just use training=True in a loop or call predict multiple times?
-    # Keras functional API / Sequential model call with training=True works.
-    
-    # We need to use model(input_data, training=True) to enable dropout during inference
-    # input_data is numpy array, convert to tensor if needed or just pass as is (usually works)
-    input_data = tf.convert_to_tensor(input_data)
-    for _ in range(n_iterations):
-        # model() call expects a tensor, predict() is higher level. 
-        # But predict() usually disables dropout.
-        # We can use model(x, training=True)
-        pred = model(input_data, training=True).numpy()
-        predictions.append(pred)
-        
-    predictions = np.array(predictions) # Shape: (n_iterations, 1, 1)
-    
-    # Inverse transform all predictions
-    predictions_resc = np.array([ys.inverse_transform(p) for p in predictions])
-    predictions_resc = predictions_resc.reshape(n_iterations) # Shape: (n_iterations,)
-    
-    mean_pred = np.mean(predictions_resc)
-    std_pred = np.std(predictions_resc)
-    
-    # Return last 20 days for plotting (unscaled)
+    pred = model.predict(input_data)
+    pred = ys.inverse_transform(pred)
     last_20_days = df.tail(20).copy()
 
-    # Return mean prediction, confidence (std dev), and history
-    return mean_pred, std_pred, last_20_days
+    return pred, last_20_days
 
 
 if __name__ == "__main__":
-    print(predict_price('066570', ['3MA', 'Volume', 'Open'], window_size=30)[0])
+    print(predict_price('000660',user_defined_features=['3MA', 'Volume', 'Open'], window_size=30)[0])
