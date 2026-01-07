@@ -7,13 +7,13 @@ import base64
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# .env 파일에서 환경변수 로드
 load_dotenv()
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
-# Initialize session state for ticker if not exists
+# 세션 상태에 티커가 없으면 초기화
 if 'ticker' not in st.session_state:
     st.session_state.ticker = "005930"
 
@@ -23,7 +23,7 @@ all_features = ['Open', 'High', 'Low', 'Close', 'Volume', 'Change', '3MA', '5MA'
 
 st.sidebar.header("설정")
 
-# --- Ticker Search Feature ---
+# --- 종목 검색 기능 ---
 st.sidebar.subheader("종목 검색")
 company_name = st.sidebar.text_input("회사 이름 (예: 삼성전자)", key="company_search")
 if st.sidebar.button("종목 코드 찾기"):
@@ -31,7 +31,7 @@ if st.sidebar.button("종목 코드 찾기"):
         st.sidebar.warning("회사 이름을 입력해주세요.")
     else:
         try:
-            # Check for API Key
+            # API 키 확인
             if "OPENAI_API_KEY" not in os.environ:
                  st.sidebar.error("OpenAI API Key가 설정되지 않았습니다.")
             else:
@@ -48,7 +48,7 @@ if st.sidebar.button("종목 코드 찾기"):
         except Exception as e:
             st.sidebar.error(f"오류 발생: {e}")
 
-# --- AI Feature Recommender ---
+# --- AI 투자 성향 분석 및 추천 ---
 st.sidebar.subheader("AI 투자 성향 분석 및 추천")
 investment_style = st.sidebar.text_area("투자 성향을 알려주세요 (예: 안전 제일, 단타 위주)", key="style_input")
 if st.sidebar.button("추천 기능 (Features) 받기"):
@@ -66,11 +66,11 @@ if st.sidebar.button("추천 기능 (Features) 받기"):
                 ]
                 response = llm.invoke(messages)
                 
-                # Parse response
+                # 응답 파싱
                 import ast
                 recommended_features = ast.literal_eval(response.content.strip())
                 
-                # Validate
+                # 검증
                 valid_features = [f for f in recommended_features if f in all_features]
                 
                 if valid_features:
@@ -83,14 +83,14 @@ if st.sidebar.button("추천 기능 (Features) 받기"):
         except Exception as e:
             st.sidebar.error(f"오류 발생: {e}")
 
-# 1. Inputs
-# Use session state for value
+# 1. 입력 설정
+# 값 유지를 위해 세션 상태 사용
 ticker = st.sidebar.text_input("종목 코드", value=st.session_state.ticker)
-# Update session state if user manually changes input
+# 사용자가 수동으로 변경하면 세션 상태 업데이트
 if ticker != st.session_state.ticker:
     st.session_state.ticker = ticker
 
-# Initialize defaults if not in session state
+# 세션 상태에 없으면 기본값 초기화
 if 'selected_features' not in st.session_state:
     st.session_state['selected_features'] = ['3MA', 'Volume', 'Open']
 
@@ -127,7 +127,7 @@ if st.button("Predict Price"):
             st.success(f"Predicted Price: **{prediction:,.0f} KRW**")            
             st.subheader("Last 20 Days & Prediction")
             
-            # Plotting using the new function
+            # 새로운 함수를 사용하여 시각화
             fig = plot_prediction(history_df, prediction, ticker)
             
             st.pyplot(fig)

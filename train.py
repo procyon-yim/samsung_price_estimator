@@ -60,7 +60,6 @@ window_size=15
             y_list.append(y[i+window_size])
         return np.array(X_list), np.array(y_list)
     WINDOW_SIZE = window_size
-    # hmm.. this is a very interesting feature
     X_train_seq, y_train_seq = make_sequential_dataset(X_train_s, y_train_s, WINDOW_SIZE)
     X_test_seq, y_test_seq = make_sequential_dataset(X_test_s, y_test_s, WINDOW_SIZE)
     
